@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>Interval Beep Timer</title>
+<style>
+  body {
+    background:#0e0e0e;
+    color:#fff;
+    font-family: 'Segoe UI', sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+    gap:20px;
+  }
+
+  h1 {
+    font-size:28px;
+    font-weight:600;
+    margin-bottom:10px;
+  }
+
+  #timerDisplay {
+    font-size:60px;
+    margin:15px;
+    transition:0.2s ease;
+  }
+
+  button {
+    padding:12px 25px;
+    border:none;
+    border-radius:10px;
+    background:#333;
+    color:#fff;
+    cursor:pointer;
+    font-size:16px;
+    transition:0.2s;
+  }
+
+  button:hover {
+    background:#555;
+  }
+
+  input[type="range"] {
+    width:220px;
+  }
+
+  .container {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    padding:20px;
+    background:#1a1a1a;
+    border-radius:12px;
+    box-shadow:0 0 20px rgba(255,255,255,0.05);
+  }
+
+  .flex {
+    display:flex;
+    gap:15px;
+  }
+
+  .pulse {
+    animation:pulseAnim 0.6s ease;
+  }
+
+  @keyframes pulseAnim {
+    0% { transform:scale(1); }
+    50% { transform:scale(1.2); color:#ff7070; }
+    100% { transform:scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<h1>ビープインターバルタイマー</h1>
+
+<div class="container">
+  <div id="timerDisplay">60</div>
+
+  <div>
+    間隔（秒）: <input id="intervalInput" type="number" min="5" max="3600" value="60" style="width:80px;">
+  </div>
+
+  <div class="flex">
+    <button id="startBtn">開始</button>
+    <button id="pauseBtn" disabled>停止</button>
+    <button id="resumeBtn" disabled>再開</button>
+  </div>
+
+  <label>音量
+    <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5">
+  </label>
+</div>
+
+<script>
+// --- Web Audio Setup ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let volumeNode = audioCtx.createGain();
+volumeNode.gain.value = 0.5;
+volumeNode.connect(audioCtx.destination);
+
+function beep() {
+  const osc = audioCtx.createOscillator();
+  osc.frequency.value = 1000;
+  osc.connect(volumeNode);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.2);
+
+  // Pulse animation
+  const disp = document.getElementById("timerDisplay");
+  disp.classList.add("pulse");
+  setTimeout(() => disp.classList.remove("pulse"), 600);
+}
+
+// --- Timer State ---
+let intervalSec = 60;
+let remaining = intervalSec;
+let timerId = null;
+
+// Update interval when changed
+document.getElementById("intervalInput").oninput = e => {
+  intervalSec = parseInt(e.target.value);
+  if (!timerId) {
+    remaining = intervalSec;
+    document.getElementById("timerDisplay").textContent = remaining;
+  }
+};
+
+// Start
+document.getElementById("startBtn").onclick = () => {
+  if (timerId) return;
+  remaining = intervalSec;
+
+  timerId = setInterval(() => {
+    remaining--;
+    document.getElementById("timerDisplay").textContent = remaining;
+
+    if (remaining <= 0) {
+      beep();
+      remaining = intervalSec;
+    }
+  }, 1000);
+
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("pauseBtn").disabled = false;
+};
+
+// Pause
+document.getElementById("pauseBtn").onclick = () => {
+  clearInterval(timerId);
+  timerId = null;
+
+  document.getElementById("pauseBtn").disabled = true;
+  document.getElementById("resumeBtn").disabled = false;
+};
+
+// Resume
+document.getElementById("resumeBtn").onclick = () => {
+  if (!timerId) {
+    timerId = setInterval(() => {
+      remaining--;
+      document.getElementById("timerDisplay").textContent = remaining;
+
+      if (remaining <= 0) {
+        beep();
+        remaining = intervalSec;
+      }
+    }, 1000);
+  }
+
+  document.getElementById("resumeBtn").disabled = true;
+  document.getElementById("pauseBtn").disabled = false;
+};
+
+// Volume
+document.getElementById("volume").oninput = e => {
+  volumeNode.gain.value = e.target.value;
+};
+</script>
+
+</body>
+</html>
