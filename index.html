@@ -1,381 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>Interval Beep Timer — With Blackout Effect</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interval Timer</title>
 <style>
-  :root{
-    --bg:#0e0e0e;
-    --panel:#1a1a1a;
-    --muted:#9aa0a6;
-    --accent:#ff7070;
-    --btn:#333;
-  }
-
-  html,body{height:100%;margin:0;}
-  body {
-    font-family: "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
-    background:var(--bg);
-    color:#fff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:18px;
-    padding:20px;
-  }
-
-  .app {
-    width:100%;
-    max-width:520px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
-    border-radius:14px;
-    padding:22px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.7);
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-    align-items:center;
-  }
-
-  h1 { margin:0; font-size:20px; font-weight:600; }
-  #timerDisplay {
-    font-size:64px;
-    letter-spacing:2px;
-    width:100%;
-    text-align:center;
-    padding:8px 0;
-  }
-
-  .controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-
-  input[type="number"]{
-    width:110px;
-    padding:8px 10px;
-    border-radius:8px;
-    border:1px solid rgba(255,255,255,0.06);
-    background:transparent;
-    color:#fff;
-    font-size:14px;
-  }
-
-  .btn{
-    background:var(--btn);
-    color:#fff;
-    border:none;
-    padding:10px 16px;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:14px;
-  }
-  .btn:disabled{ opacity:0.45; cursor:not-allowed; }
-
-  label { font-size:14px; color:var(--muted); display:flex; align-items:center; gap:10px; }
-
-  input[type="range"]{ width:180px; }
-
-  .small { font-size:13px; color:var(--muted); margin-top:6px; text-align:center; }
-
-  /* Overlay / blackout styles (base - overlays are created dynamically) */
-  .blackout {
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:-100vh;
-    height:100vh;
-    background:black;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:9999;
-    /* We'll animate transform for smoother GPU-friendly animations */
-    transform: translateY(100%);
-    /* transitions replaced by keyframe animations triggered by classes */
-  }
-
-  .blackout.full {
-    transform: translateY(0%);
-  }
-
-  .blackout.exit {
-    transform: translateY(-100%);
-  }
-
-  .blackout .message {
-    color:#fff;
-    font-weight:700;
-    text-align:center;
-    pointer-events:none;
-    user-select:none;
-    opacity:0;
-  }
-
-  /* medium text size per your choice */
-  .message.medium {
-    font-size:42px;
-    letter-spacing:1px;
-  }
-
-  /* pulse once */
-  @keyframes pulseOnce {
-    0% { transform: scale(1); opacity:1; }
-    40% { transform: scale(1.18); opacity:1; }
-    100% { transform: scale(1); opacity:1; }
-  }
-
-  /* animation durations will be applied inline via element.style.animationDuration */
-  .pulse {
-    animation-name: pulseOnce;
-    animation-timing-function: ease-out;
-    animation-iteration-count: 1;
-    transform-origin:center;
-  }
-
-  /* Accessibility: reduce motion respect */
-  @media (prefers-reduced-motion: reduce) {
-    .blackout, .blackout.full, .blackout.exit, .pulse {
-      transition: none !important;
-      animation: none !important;
-      transform: none !important;
+    body {
+        background: #111;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 40px;
     }
-  }
 
-  /* responsive */
-  @media (max-width:420px){
-    .message.medium { font-size:30px; }
-    #timerDisplay { font-size:48px; }
-  }
+    #timer {
+        font-size: 4rem;
+        margin-bottom: 20px;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 1.2rem;
+        margin: 10px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+    }
+
+    #volumeControl {
+        width: 200px;
+        margin-top: 20px;
+    }
+
+    /* --- BLACKOUT OVERLAY --- */
+    #blackout {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 0%;
+        background: black;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        font-size: 2rem; /* Medium size */
+        opacity: 1;
+        transition: height 1.5s ease-in;
+        pointer-events: none;
+        z-index: 9999;
+    }
+
+    .blackout-hide {
+        animation: slideUpDisappear 1s forwards;
+    }
+
+    @keyframes slideUpDisappear {
+        from { height: 100%; }
+        to { height: 0%; }
+    }
+
+    .pulse {
+        animation: pulseOnce 0.6s ease-out forwards;
+    }
+
+    @keyframes pulseOnce {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
 </style>
 </head>
+
+
 <body>
-  <div class="app" role="application" aria-label="Interval beep timer app">
-    <h1>Interval Beep Timer</h1>
 
-    <div id="timerDisplay" aria-live="polite">60</div>
+<h1>Interval Timer</h1>
 
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;">
-      <div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:6px;text-align:center;">Interval (seconds)</div>
-        <input id="intervalInput" type="number" min="5" max="3600" value="60" />
-      </div>
+<div id="timer">60</div>
 
-      <div style="display:flex;flex-direction:column;align-items:center;">
-        <label>Volume
-          <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" />
-        </label>
-        <div class="small">Use Start to enable sound (browser audio policy)</div>
-      </div>
-    </div>
+<button onclick="pauseTimer()">Pause</button>
+<button onclick="resumeTimer()">Resume</button>
+<button onclick="resetTimer()">Reset</button>
 
-    <div class="controls">
-      <button class="btn" id="startBtn">Start</button>
-      <button class="btn" id="pauseBtn" disabled>Pause</button>
-      <button class="btn" id="resumeBtn" disabled>Resume</button>
-      <button class="btn" id="resetBtn">Reset</button>
-    </div>
+<br>
 
-    <div class="small">When the timer reaches 0 it will beep, reset, and trigger the blackout animation.</div>
-  </div>
+<label>Volume: </label>
+<input type="range" id="volumeControl" min="0" max="1" step="0.01" value="1">
+
+<div id="blackout"></div>
+
+<audio id="beepSound">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
 
 <script>
-/* ========== Audio setup ========== */
-/* Create AudioContext later (on first gesture) to avoid autoplay blocking */
-let audioCtx = null;
-function ensureAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    gainNode = audioCtx.createGain();
-    gainNode.gain.value = parseFloat(document.getElementById('volume').value || 0.5);
-    gainNode.connect(audioCtx.destination);
-  } else if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-}
-let gainNode = null;
+    let timeLeft = 60;
+    let timerRunning = true;
 
-function beep(duration = 0.18, freq = 1000) {
-  try {
-    ensureAudioContext();
-    const osc = audioCtx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    osc.connect(gainNode);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
-  } catch (e) {
-    // If audio can't play, just ignore (browser policies)
-    console.warn('beep error:', e);
-  }
-}
+    const timerDisplay = document.getElementById("timer");
+    const beepSound = document.getElementById("beepSound");
+    const volumeControl = document.getElementById("volumeControl");
 
-/* Volume control */
-document.getElementById('volume').addEventListener('input', (e)=>{
-  const v = parseFloat(e.target.value);
-  if (gainNode) gainNode.gain.value = v;
-});
+    volumeControl.addEventListener("input", () => {
+        beepSound.volume = volumeControl.value;
+    });
 
-/* ========== Timer logic ========== */
-let intervalSec = 60;
-let remaining = intervalSec;
-let timerId = null;
-const display = document.getElementById('timerDisplay');
-const intervalInput = document.getElementById('intervalInput');
+    function updateTimer() {
+        if (!timerRunning) return;
 
-intervalInput.addEventListener('input', (e)=>{
-  const val = parseInt(e.target.value,10);
-  if (!isNaN(val) && val >= 1) {
-    intervalSec = val;
-    // If timer not running, update remaining immediately to show change
-    if (!timerId) {
-      remaining = intervalSec;
-      updateDisplay();
+        timeLeft--;
+
+        if (timeLeft <= 0) {
+            beepSound.currentTime = 0;
+            beepSound.play();
+
+            triggerBlackout(); // Start animation immediately
+
+            timeLeft = 60; // Reset timer immediately
+        }
+
+        timerDisplay.textContent = timeLeft;
     }
-  }
-});
 
-function updateDisplay() {
-  display.textContent = String(remaining);
-}
+    setInterval(updateTimer, 1000);
 
-/* Start / Pause / Resume / Reset buttons */
-const startBtn = document.getElementById('startBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const resumeBtn = document.getElementById('resumeBtn');
-const resetBtn = document.getElementById('resetBtn');
+    function pauseTimer() { timerRunning = false; }
+    function resumeTimer() { timerRunning = true; }
+    function resetTimer() {
+        timeLeft = 60;
+        timerDisplay.textContent = timeLeft;
+    }
 
-startBtn.addEventListener('click', ()=>{
-  // ensure audio context created/resumed on user gesture
-  ensureAudioContext();
-  if (timerId) return;
-  // if remaining is invalid, reset to interval
-  if (!remaining || remaining <= 0) remaining = intervalSec;
-  timerId = setInterval(tickSecond, 1000);
-  startBtn.disabled = true;
-  pauseBtn.disabled = false;
-  resumeBtn.disabled = true;
-});
+    /* --- BLACKOUT ANIMATION FUNCTION --- */
+    function triggerBlackout() {
+        const blackout = document.getElementById("blackout");
 
-pauseBtn.addEventListener('click', ()=>{
-  if (timerId) {
-    clearInterval(timerId);
-    timerId = null;
-    pauseBtn.disabled = true;
-    resumeBtn.disabled = false;
-    startBtn.disabled = false;
-  }
-});
+        // Reset state
+        blackout.classList.remove("blackout-hide");
+        blackout.style.height = "0%";
+        blackout.textContent = "";
 
-resumeBtn.addEventListener('click', ()=>{
-  ensureAudioContext();
-  if (!timerId) {
-    timerId = setInterval(tickSecond, 1000);
-    resumeBtn.disabled = true;
-    pauseBtn.disabled = false;
-    startBtn.disabled = true;
-  }
-});
+        requestAnimationFrame(() => {
+            blackout.style.height = "100%"; // Rise (1.5s)
 
-resetBtn.addEventListener('click', ()=>{
-  // reset remaining to the current interval value (doesn't start)
-  remaining = intervalSec;
-  updateDisplay();
-});
+            setTimeout(() => {
+                blackout.textContent = "Replace Summons";
+                blackout.classList.add("pulse");
 
-/* ticking */
-function tickSecond() {
-  remaining--;
-  if (remaining < 0) remaining = 0;
-  updateDisplay();
+                // Keep text visible for 3 seconds
+                setTimeout(() => {
+                    blackout.classList.remove("pulse");
 
-  if (remaining === 0) {
-    // immediate beep and immediate reset & continue (per your spec)
-    beep();
-    // trigger blackout overlay animation (independent)
-    triggerBlackout();
-    // reset timer immediately to the interval and continue counting
-    remaining = intervalSec;
-    updateDisplay();
-    // continue (interval already running)
-  }
-}
+                    // Slide away upward (1s)
+                    blackout.classList.add("blackout-hide");
 
-/* initialize display */
-remaining = intervalSec;
-updateDisplay();
+                }, 3000);
 
-/* ========== Blackout animation (stackable) ========== */
-
-/*
-Behavior per animation:
-- Entrance: rise from bottom to cover screen -> duration: 1.5s (your choice C)
-- After fully covered, show "Replace Summons" (medium text), pulse once
-- Keep visible up to 3s (text visible during that)
-- Exit: slide upward off screen -> duration ~1s
-Total per animation: 1.5 + 3 + 1 = 5.5s, but we'll ensure "overlay stays no longer than 5s total".
-You requested that the animation not last longer than 5 seconds total.
-So we'll use:
-  entrance: 1.5s
-  text delay (after entrance): 0.0s (text appears immediately after entrance)
-  text visible: 2.0s (so far 1.5 + 2.0 = 3.5)
-  exit: 1.5s (total 5.0s)
-This respects the <=5s limit.
-*/
-
-const ENTRANCE_MS = 1500; // 1.5s entrance
-const TEXT_VISIBLE_MS = 2000; // 2.0s text visible
-const EXIT_MS = 1500; // 1.5s exit
-// total = 1500 + 2000 + 1500 = 5000ms
-
-function triggerBlackout() {
-  // create a new overlay element so animations can stack independently
-  const overlay = document.createElement('div');
-  overlay.className = 'blackout';
-  overlay.setAttribute('aria-hidden','true');
-
-  // message element
-  const msg = document.createElement('div');
-  msg.className = 'message medium';
-  msg.textContent = 'Replace Summons';
-  overlay.appendChild(msg);
-
-  // initial styles for transition using transform; set transitions using requestAnimationFrame so browser can apply them
-  // add overlay to DOM
-  document.body.appendChild(overlay);
-
-  // Force style & reflow to ensure transitions/transform applied
-  overlay.style.transition = `transform ${ENTRANCE_MS}ms ease-in-out`;
-  // show (move to full) on next tick
-  requestAnimationFrame(() => {
-    overlay.style.transform = 'translateY(0%)';
-  });
-
-  // When entrance finishes, show text and pulse once
-  setTimeout(() => {
-    // Make text visible and pulse once
-    msg.style.opacity = '1';
-    // Apply pulse animation duration ~ 600ms
-    msg.classList.add('pulse');
-    msg.style.animationDuration = '600ms';
-  }, ENTRANCE_MS);
-
-  // After ENTRANCE_MS + TEXT_VISIBLE_MS, start exit
-  setTimeout(() => {
-    // prepare exit animation
-    overlay.style.transition = `transform ${EXIT_MS}ms ease-in-out`;
-    overlay.style.transform = 'translateY(-100%)'; // slide up out
-  }, ENTRANCE_MS + TEXT_VISIBLE_MS);
-
-  // Remove overlay after full exit
-  setTimeout(() => {
-    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-  }, ENTRANCE_MS + TEXT_VISIBLE_MS + EXIT_MS + 50); // little extra buffer
-}
-
-/* ========== Extra: Safety / visibility handling ========== */
-/* If user leaves page or reloads, cleanup timers */
-window.addEventListener('beforeunload', ()=>{
-  if (timerId) clearInterval(timerId);
-});
+            }, 1500); // After upward rise
+        });
+    }
 </script>
+
 </body>
 </html>
